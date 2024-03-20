@@ -38,11 +38,13 @@ public class JSONProcessing
     /// <summary>
     /// Метод для сериализации данных 
     /// </summary>
-    /// <param name="products">Список объектов из json</param>
-    /// <param name="path">Путь для записи</param>
     public static MemoryStream Write(List<WifiCC> allInf)
     {
-        string jsonString = JsonSerializer.Serialize<List<WifiCC>>(allInf);
+        string jsonString = JsonSerializer.Serialize<List<WifiCC>>(allInf, new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        });
         
         MemoryStream stream = new MemoryStream();
         StreamWriter writer = new StreamWriter(stream, Encoding.UTF8);

@@ -24,6 +24,12 @@ public class User
         set { _userState = value;  }
     }
 
+    public string TmpField
+    {
+        get;
+        set;
+    }
+
     public User(string charId)
     {
         ChatId = charId;
@@ -33,5 +39,15 @@ public class User
     public User()
     {
         
+    }
+
+    public void Sorting()
+    {
+        
+    }
+
+    public List<WifiCC> TakingOverField(string field, string value)
+    {
+        return _listFromFile.Where(x => x.GetRightProperty(field).Contains(value)).ToList();
     }
 }

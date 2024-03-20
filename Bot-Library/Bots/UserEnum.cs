@@ -4,8 +4,8 @@ public enum UserEnum
 {
     Starting,
     Choosing,
-    Downloading,
     TakingOverField,
-    Sorting,
-    GettingNewFile
+    WaitingForValue,
+    WaitingFileName,
+    Sorting
 }

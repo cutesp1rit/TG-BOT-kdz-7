@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json.Serialization;
 
 namespace Bot_Library;
@@ -175,6 +174,27 @@ public class WifiCC
         Geoarea = geoarea;
     }
 
+    public string GetRightProperty(string field)
+    {
+        if (field == "CoverageArea")
+        {
+            return CoverageArea;
+        }
+        else if (field == "WiFiName")
+        {
+            return WiFiName;
+        }
+        else if (field == "District")
+        {
+            return District;
+        }
+        else if (field == "AccessFlag")
+        {
+            return AccessFlag;
+        }
+        return "";
+    }
+    
     // наличие пустого конструктора
     public WifiCC()
     {

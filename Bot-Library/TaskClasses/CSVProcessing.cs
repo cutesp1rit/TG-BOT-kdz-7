@@ -1,7 +1,5 @@
 ﻿using System.Text;
-
 namespace Bot_Library;
-using Telegram.Bot;
 
 public class CSVProcessing
 {
