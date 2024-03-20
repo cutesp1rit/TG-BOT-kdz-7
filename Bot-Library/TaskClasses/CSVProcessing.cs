@@ -5,7 +5,7 @@ using Telegram.Bot;
 
 public class CSVProcessing
 {
-    public static List<WifiCC> Read(Stream stream, ITelegramBotClient botClient, long chatId, CancellationToken cancellationToken)
+    public static List<WifiCC> Read(Stream stream)
     {
         string line;
         List<string> massivStrings = new List<string>();
@@ -24,11 +24,28 @@ public class CSVProcessing
             {
                 throw new ArgumentNullException();
             }
-            
         }
         CheakString(massivStrings.ToArray());
         return SortOfInformation(massivStrings.ToArray());
     }
+    
+    public static MemoryStream Write(List<WifiCC> allInf)
+    {
+        MemoryStream stream = new MemoryStream();
+        StreamWriter writer = new StreamWriter(stream, Encoding.UTF8);
+
+        foreach (var obj in allInf)
+        {
+            writer.WriteLine(obj.ToCSV());
+        }
+
+        writer.Flush();
+        stream.Position = 0;
+
+        return stream;
+    }
+    
+    /// все следующие методы по парсингу файла взяты из старого кдз
     
     /// <summary>
     /// Алгоритм проверки файла на корректность данных
@@ -204,4 +221,21 @@ public class CSVProcessing
         }
         return resultOfMassivString; // возвращаем получанный массив
     }
+    
+    public static MemoryStream Write(string[] fileContent)
+    {
+        MemoryStream stream = new MemoryStream();
+        StreamWriter writer = new StreamWriter(stream, Encoding.UTF8);
+
+        foreach (var line in fileContent)
+        {
+            writer.WriteLine(line);
+        }
+
+        writer.Flush();
+        stream.Position = 0;
+
+        return stream;
+    }
 }
+

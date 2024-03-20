@@ -137,7 +137,7 @@ public class BotClient
             {
                 await botClient.DownloadFileAsync(filePath, stream, cancellationToken);
                 stream.Position = 0;
-                allInf = CSVProcessing.Read(stream, _bot, message.Chat.Id, cancellationToken);
+                allInf = CSVProcessing.Read(stream);
             }
 
             // файл успешно считался, поэтому переводим его в следующее состояние

@@ -1,5 +1,9 @@
+using System.Text;
+using System.Text.Json.Serialization;
+
 namespace Bot_Library;
 
+[Serializable]
 public class WifiCC
 {
     private string _id;
@@ -19,6 +23,7 @@ public class WifiCC
     private string _geodataCenter;
     private string _geoarea;
 
+    [JsonPropertyName("ID")]
     public string Id
     {
         get => _id;
@@ -26,6 +31,7 @@ public class WifiCC
             "Ошибка инициализации \"_widgetId\"");
     }
     
+    [JsonPropertyName("CulturalCenterName")]
     public string CulturalCenterName
     {
         get => _culturalCenterName;
@@ -33,6 +39,7 @@ public class WifiCC
             "Ошибка инициализации \"_culturalCenterName\"");
     }
 
+    [JsonPropertyName("AdmArea")]
     public string AdmArea
     {
         get => _admArea;
@@ -40,6 +47,7 @@ public class WifiCC
             "Ошибка инициализации \"_admArea\"");
     }
 
+    [JsonPropertyName("District")]
     public string District
     {
         get => _district;
@@ -47,6 +55,7 @@ public class WifiCC
             "Ошибка инициализации \"_district\"");
     }
 
+    [JsonPropertyName("Address")]
     public string Address
     {
         get => _address;
@@ -54,6 +63,7 @@ public class WifiCC
             "Ошибка инициализации \"_address\"");
     }
 
+    [JsonPropertyName("NumberOfAccessPoints")]
     public string NumberOfAccessPoints
     {
         get => _numberOfAccessPoints;
@@ -61,6 +71,7 @@ public class WifiCC
             "Ошибка инициализации \"_numberOfAccessPoints\"");
     }
 
+    [JsonPropertyName("WiFiName")]
     public string WiFiName
     {
         get => _wiFiName;
@@ -68,6 +79,7 @@ public class WifiCC
             "Ошибка инициализации \"_wiFiName\"");
     }
 
+    [JsonPropertyName("CoverageArea")]
     public string CoverageArea
     {
         get => _coverageArea;
@@ -75,6 +87,7 @@ public class WifiCC
             "Ошибка инициализации \"_coverageArea\"");
     }
 
+    [JsonPropertyName("FunctionFlag")]
     public string FunctionFlag
     {
         get => _functionFlag;
@@ -82,6 +95,7 @@ public class WifiCC
             "Ошибка инициализации \"_functionFlag\"");
     }
 
+    [JsonPropertyName("AccessFlag")]
     public string AccessFlag
     {
         get => _accessFlag;
@@ -89,6 +103,7 @@ public class WifiCC
             "Ошибка инициализации \"_accessFlag\"");
     }
 
+    [JsonPropertyName("Password")]
     public string Password
     {
         get => _password;
@@ -96,6 +111,7 @@ public class WifiCC
             "Ошибка инициализации \"_password\"");
     }
 
+    [JsonPropertyName("Latitude_WGS84")]
     public string LatitudeWGS84
     {
         get => _latitudeWGS84;
@@ -103,6 +119,7 @@ public class WifiCC
             "Ошибка инициализации \"_latitudeWGS84\"");
     }
 
+    [JsonPropertyName("Longitude_WGS84")]
     public string LongitudeWGS84
     {
         get => _longitudeWGS84;
@@ -110,6 +127,7 @@ public class WifiCC
             "Ошибка инициализации \"_longitudeWGS84\"");
     }
 
+    [JsonPropertyName("global_id")]
     public string GlobalId
     {
         get => _globalId;
@@ -117,6 +135,7 @@ public class WifiCC
             "Ошибка инициализации \"_globalId\"");
     }
 
+    [JsonPropertyName("geodata_center")]
     public string GeodataCenter
     {
         get => _geodataCenter;
@@ -124,6 +143,7 @@ public class WifiCC
             "Ошибка инициализации \"_geodataCenter\"");
     }
 
+    [JsonPropertyName("geoarea")]
     public string Geoarea
     {
         get => _geoarea;
@@ -131,6 +151,7 @@ public class WifiCC
             "Ошибка инициализации \"_geoarea\"");
     }
     
+    [JsonConstructor]
     public WifiCC(string id, string culturalCenterName, string admArea, string district, string address,
         string numberOfAccessPoints, string wiFiName, string coverageArea, string functionFlag,
         string accessFlag, string password, string latitudeWGS84, string longitudeWGS84,
@@ -158,5 +179,12 @@ public class WifiCC
     public WifiCC()
     {
         
+    }
+
+    public string ToCSV()
+    {
+        return $"\"{Id}\";\"{CulturalCenterName}\";\"{AdmArea}\";\"{District}\";\"{Address}\";\"{NumberOfAccessPoints}\";" +
+               $"\"{WiFiName}\";\"{CoverageArea}\";\"{FunctionFlag}\";\"{AccessFlag}\";" +
+               $"\"{Password}\";\"{LatitudeWGS84}\";\"{LongitudeWGS84}\";\"{GlobalId}\";\"{GeodataCenter}\";\"{Geoarea}\";";
     }
 }
