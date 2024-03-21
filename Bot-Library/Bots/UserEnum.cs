@@ -6,6 +6,7 @@ public enum UserEnum
     Choosing,
     TakingOverField,
     WaitingForValue,
+    WaitingForTwoValue,
     WaitingFileName,
     Sorting
 }

@@ -6,7 +6,7 @@ public class CSVProcessing
     public static List<WifiCC> Read(Stream stream)
     {
         string line;
-        List<string> massivStrings = new List<string>();
+        List<string> arrayStrings = new List<string>();
         using (StreamReader reader = new StreamReader(stream))
         {
             line = reader.ReadLine();
@@ -14,17 +14,17 @@ public class CSVProcessing
             {
                 if (line.Length != 0)
                 {
-                    massivStrings.Add(line);    
+                    arrayStrings.Add(line);    
                 }
                 line = reader.ReadLine();
             }
-            if (massivStrings.Count == 0)
+            if (arrayStrings.Count == 0)
             {
                 throw new ArgumentNullException();
             }
         }
-        CheakString(massivStrings.ToArray());
-        return SortOfInformation(massivStrings.ToArray());
+        CheakString(arrayStrings.ToArray());
+        return SortOfInformation(arrayStrings.ToArray());
     }
     
     public static MemoryStream Write(List<WifiCC> allInf)
@@ -32,6 +32,13 @@ public class CSVProcessing
         MemoryStream stream = new MemoryStream();
         StreamWriter writer = new StreamWriter(stream, Encoding.UTF8);
 
+        writer.WriteLine("\"ID\";\"CulturalCenterName\";\"AdmArea\";\"District\";\"Address\";\"NumberOfAccessPoints\";" +
+                         "\"WiFiName\";\"CoverageArea\";\"FunctionFlag\";\"AccessFlag\";\"Password\";\"Latitude_WGS84\";" +
+                         "\"Longitude_WGS84\";\"global_id\";\"geodata_center\";\"geoarea\";\n\"Код\";" +
+                         "\"Наименование культурного центра\";\"Административный округ\";\"Район\";\"Адрес\";" +
+                         "\"Количество точек доступа\";\"Имя Wi-Fi сети\";\"Зона покрытия, в метрах\";" +
+                         "\"Признак функционирования\";\"Условия доступа\";\"Пароль\";\"Широта в WGS-84\";" +
+                         "\"Долгота в WGS-84\";\"global_id\";\"geodata_center\";\"geoarea\";");
         foreach (var obj in allInf)
         {
             writer.WriteLine(obj.ToCSV());
@@ -48,13 +55,13 @@ public class CSVProcessing
     /// <summary>
     /// Алгоритм проверки файла на корректность данных
     /// </summary>
-    /// <param name="massivStrings">массив строк</param>
+    /// <param name="arrayStrings">массив строк</param>
     /// <exception cref="ArgumentNullException"></exception>
-    public static void CheakString(string[] massivStrings)
+    public static void CheakString(string[] arrayStrings)
     {
-        for (int v = 0; v < massivStrings.Length; v++) // проверяем каждую строку на корректность данных
+        for (int v = 0; v < arrayStrings.Length; v++) // проверяем каждую строку на корректность данных
         {
-            if (massivStrings[v].Length == 0)
+            if (arrayStrings[v].Length == 0)
             {
                 continue;
             }
@@ -69,7 +76,7 @@ public class CSVProcessing
                 }
             } */
 
-            string someString = massivStrings[v];
+            string someString = arrayStrings[v];
             int i = 0; // индекс для прохода по строке
             int kolProverka = 0; // количество разделенных элементов в строке
             if (someString[^1] != ';')
@@ -128,33 +135,33 @@ public class CSVProcessing
     /// Отвечает за рассортировку всех данных, элементов по массивам. Возвращает массив массивов. 
     /// Работа метода происходит не через Split, чтобы избежать потери информации, так как данные в таблице заключены в кавычках
     /// </summary>
-    public static List<WifiCC> SortOfInformation(string[] massivStrings) {
+    public static List<WifiCC> SortOfInformation(string[] arrayStrings) {
         int kolPust = 0; // количество пустых строк
         // этот цикл нужен в случае пробелов в конце строки. однако я не пользуюсь им, так как
         // записываю строки подряд \n. но он у меня есть в случае другой задачи
         // в этой я считаю, что наличие символа НЕ ";" в конце строки - являяется исключением
-        for (int i = 0; i < massivStrings.Length; i++)
+        for (int i = 0; i < arrayStrings.Length; i++)
         {
-            if (massivStrings[i].Length == 0)
+            if (arrayStrings[i].Length == 0)
             {
                 kolPust++;
             }
         }
         
         // имеем 16 выборок
-        string[][] massivMassivsStrings = new string[massivStrings.Length - kolPust][]; // пустые не учитываем
+        string[][] arrayArraysStrings = new string[arrayStrings.Length - kolPust][]; // пустые не учитываем
         int j = 0; // индекс для массива выше
-        for (int i = 0; i < massivStrings.Length; i++)
+        for (int i = 0; i < arrayStrings.Length; i++)
         {
-            if (massivStrings[i].Length != 0) // пустые строки не добавляем
+            if (arrayStrings[i].Length != 0) // пустые строки не добавляем
             {
-                massivMassivsStrings[j] = ReadString(massivStrings[i]);
+                arrayArraysStrings[j] = ReadString(arrayStrings[i]);
                 j++;
             }
         }
         
         List<WifiCC> allInf = new List<WifiCC>();
-        foreach (var line in massivMassivsStrings[2..])
+        foreach (var line in arrayArraysStrings[2..])
         {
             allInf.Add(new WifiCC(line[0], line[1], line[2], line[3], line[4], line[5], 
                 line[6], line[7], line[8], line[9], line[10], line[11], 
@@ -218,22 +225,6 @@ public class CSVProcessing
             continue;
         }
         return resultOfMassivString; // возвращаем получанный массив
-    }
-    
-    public static MemoryStream Write(string[] fileContent)
-    {
-        MemoryStream stream = new MemoryStream();
-        StreamWriter writer = new StreamWriter(stream, Encoding.UTF8);
-
-        foreach (var line in fileContent)
-        {
-            writer.WriteLine(line);
-        }
-
-        writer.Flush();
-        stream.Position = 0;
-
-        return stream;
     }
 }
 

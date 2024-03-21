@@ -1,3 +1,5 @@
+using System.Net;
+
 namespace Bot_Library.Bots;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
@@ -49,8 +51,8 @@ public class BotClient
         if (message.Text == "/start" && currentUser.UserState==UserEnum.Starting)
         {
             await botClient.SendTextMessageAsync(message.Chat.Id,
-                "Привет! Я рад видеть тебя здесь!\n\n" +
-                "Чтобы получить возможность пользоваться функциями для работы с файлом, пожалуйста," +
+                "\ud83d\udc4b\ud83c\udffb Привет! Я рад видеть тебя здесь!\n\n" +
+                "\u2757\ufe0f Чтобы получить возможность пользоваться функциями для работы с файлом, пожалуйста," +
                 " загрузите файл формата (CSV / JSON)");
         }
         else if (message.Document != null && currentUser.UserState==UserEnum.Starting)
@@ -61,9 +63,9 @@ public class BotClient
             var f = new FileInfo(filePath!);
             if (f.Extension == ".csv" || f.Extension == ".json")
             {
-                HandleGetFile(message, currentUser, _bot, cancellationToken);
+                await HandleGetFile(message, currentUser, _bot, cancellationToken);
                 await botClient.SendTextMessageAsync(message.Chat.Id,
-                    "Файл был успешно загружен!");
+                    "\u2705 Файл был успешно загружен!");
                 // переводим его в следующее состояние
                 currentUser.UserState = UserEnum.Choosing;
                 await ChoosingMenu(message, currentUser, _bot, cancellationToken);
@@ -72,13 +74,13 @@ public class BotClient
             {
                 await botClient.SendTextMessageAsync(message.Chat.Id,
                     "Вы отправили файл с некорретным разрешением.\n" +
-                    "Пожалуйста, отправьте файл с разрешением CSV или JSON");
+                    "\u2757\ufe0f Пожалуйста, отправьте файл с разрешением CSV или JSON");
             }
         }
         else if (currentUser.UserState == UserEnum.Starting)
         {
             await botClient.SendTextMessageAsync(message.Chat.Id,
-                "Чтобы получить возможность пользоваться функциями для работы с файлом, пожалуйста," +
+                "\u2757\ufe0f Чтобы получить возможность пользоваться функциями для работы с файлом, пожалуйста," +
                 " загрузите файл формата (CSV / JSON)");
         }
         else if (message.Text == "Загрузить новый файл на обработку" && currentUser.UserState==UserEnum.Choosing)
@@ -87,16 +89,49 @@ public class BotClient
             await botClient.SendTextMessageAsync(message.Chat.Id,
                 "Загрузите файл формата (CSV / JSON)");
         }
-        else if ((message.Text == "Произвести выборку по одному из полей файла" && currentUser.UserState==UserEnum.Choosing))
+        else if ((message.Text == "Произвести выборку по полям из файла" && currentUser.UserState==UserEnum.Choosing))
         {
             currentUser.UserState = UserEnum.TakingOverField;
             await TakingMenu(message, currentUser, _bot, cancellationToken);
         }
         else if ((message.Text == "Отсортировать по одному из полей" && currentUser.UserState==UserEnum.Choosing))
         {
-            // доделать
+            await _bot.SendTextMessageAsync(currentUser.ChatId,
+                "По какому полю вы бы хотели отсортировать?",
+                replyMarkup: new ReplyKeyboardMarkup(new[]
+                {
+                    // кнопки с вариантами
+                    new [] { new KeyboardButton("CulturalCenterName по алфавиту") },
+                    new [] { new KeyboardButton("NumberOfAccessPoints по возрастанию") }
+                }), cancellationToken: cancellationToken);
+            currentUser.UserState = UserEnum.Sorting;
+        }
+        else if (currentUser.UserState == UserEnum.Sorting)
+        {
+            if (message.Text == "CulturalCenterName по алфавиту")
+            {
+                currentUser.Sorting("CulturalCenterName");
+            }
+            else if (message.Text == "NumberOfAccessPoints по возрастанию")
+            {
+                currentUser.Sorting("NumberOfAccessPoints");
+            }
+            else // еще раз просим ответить корректно
+            {
+                await _bot.SendTextMessageAsync(currentUser.ChatId,
+                    "\u2757\ufe0f Пожалуйста, выберите из двух возможных вариантов.",
+                    replyMarkup: new ReplyKeyboardMarkup(new[]
+                    {
+                        // кнопки с вариантами
+                        new [] { new KeyboardButton("CulturalCenterName по алфавиту") },
+                        new [] { new KeyboardButton("NumberOfAccessPoints по возрастанию") }
+                    }), cancellationToken: cancellationToken);
+                return;
+            }
             await botClient.SendTextMessageAsync(message.Chat.Id,
-                "Эта функция в разработке! Пожалуйста, выберите другую!");
+                "\u2705 Сортировка прошла успешно!");
+            currentUser.UserState = UserEnum.Choosing;
+            await ChoosingMenu(message, currentUser, _bot, cancellationToken);
         }
         else if ((message.Text == "Скачать обработанный файл" && currentUser.UserState==UserEnum.Choosing))
         {
@@ -109,31 +144,71 @@ public class BotClient
         }
         else if (currentUser.UserState == UserEnum.TakingOverField && (message.Text == "CoverageArea" || 
                                                                        message.Text == "WiFiName" || 
-                                                                       message.Text == "District"|| 
-                                                                       message.Text == "AccessFlag"))
+                                                                       message.Text == "District и AccessFlag"))
         {
-            // меняем состояние для получения значение по выборке
-            currentUser.UserState = UserEnum.WaitingForValue;
             // запомянаем наше введенное поле
             currentUser.TmpField = message.Text;
-            
-            await botClient.SendTextMessageAsync(message.Chat.Id,
-                "Теперь введите значение, по которому должна пройти выборка:");
+
+            if (message.Text == "CoverageArea" ||
+                message.Text == "WiFiName")
+            { // если выборка не по двум поля 
+                await botClient.SendTextMessageAsync(message.Chat.Id,
+                    "Теперь введите значение, по которому должна пройти выборка.");    
+                // меняем состояние для получения значение по выборке
+                currentUser.UserState = UserEnum.WaitingForValue;
+            }
+            else // если выборка по двум полям
+            {
+                await botClient.SendTextMessageAsync(message.Chat.Id,
+                    "Сначала введите значение для District."); 
+                // меняем состояние для получения значение по выборке для дистрикт
+                currentUser.UserState = UserEnum.WaitingForTwoValue;
+            }
         }
-        else if (currentUser.UserState == UserEnum.WaitingForValue)
+        else if (currentUser.UserState == UserEnum.WaitingForTwoValue || currentUser.UserState == UserEnum.WaitingForValue)
         {
-            if (currentUser.TakingOverField(currentUser.TmpField, message.Text).Count == 0)
+            if (currentUser.TmpField == "District и AccessFlag" && currentUser.UserState == UserEnum.WaitingForTwoValue)
             {
+                // заносим первый результат в временный лист
+                currentUser.TmpList = currentUser.TakingOverField(currentUser.TmpField, message.Text);
+                currentUser.UserState = UserEnum.WaitingForValue; 
                 await botClient.SendTextMessageAsync(message.Chat.Id,
-                    "К сожалению, по данному значению не нашлось никаких данных. " +
-                    "Поэтому мы оставили все те же данные для дальнейшей работы.");
+                    "Теперь введите значение для AccessFlag.");
+                return;
             }
-            else
+
+            if (currentUser.TmpField == "District и AccessFlag")
             {
-                currentUser.ListFromFile = currentUser.TakingOverField(currentUser.TmpField, message.Text);
-                await botClient.SendTextMessageAsync(message.Chat.Id,
-                    "Данные были сокращены под вашу выборку! Можете продолжить с ними работу!");
+                if (currentUser.TakingOverField(currentUser.TmpField, message.Text, currentUser.TmpList).Count == 0)
+                {
+                    await botClient.SendTextMessageAsync(message.Chat.Id,
+                        "К сожалению, я ничего не нашел по этим данным. :( " +
+                        "Поэтому мы оставили все те же данные для дальнейшей работы.");
+                }
+                else
+                {
+                    currentUser.ListFromFile =
+                        currentUser.TakingOverField(currentUser.TmpField, message.Text, currentUser.TmpList);
+                    await botClient.SendTextMessageAsync(message.Chat.Id,
+                        "\u2705 Данные были сокращены под вашу выборку! Можете продолжить с ними работу!");
+                }
             }
+            else // сортировка для одного поля
+            {
+                if (currentUser.TakingOverField(currentUser.TmpField, message.Text).Count == 0)
+                {
+                    await botClient.SendTextMessageAsync(message.Chat.Id,
+                        "К сожалению, я ничего не нашел по этим данным. :( " +
+                        "Поэтому мы оставили все те же данные для дальнейшей работы.");
+                }
+                else
+                {
+                    currentUser.ListFromFile = currentUser.TakingOverField(currentUser.TmpField, message.Text);
+                    await botClient.SendTextMessageAsync(message.Chat.Id,
+                        "\u2705 Данные были сокращены под вашу выборку! Можете продолжить с ними работу!");
+                }
+            }
+
             // возвращаем его в меню
             currentUser.UserState = UserEnum.Choosing;
             await ChoosingMenu(message, currentUser, _bot, cancellationToken);
@@ -160,12 +235,12 @@ public class BotClient
     {
         await _bot.SendTextMessageAsync(currentUser.ChatId,
             "Чтобы вы хотели сделать дальше?\n" +
-            "Пожалуйста, воспользуйтесь кнопками или напишите текстом то, что написано на одной из них.",
+            "\u2757\ufe0f Пожалуйста, воспользуйтесь кнопками или напишите текстом то, что написано на одной из них.",
             replyMarkup: new ReplyKeyboardMarkup(new[]
             {
                 // кнопки с вариантами
                 new [] { new KeyboardButton("Загрузить новый файл на обработку") },
-                new [] { new KeyboardButton("Произвести выборку по одному из полей файла") }, 
+                new [] { new KeyboardButton("Произвести выборку по полям из файла") }, 
                 new [] { new KeyboardButton("Отсортировать по одному из полей") },
                 new [] { new KeyboardButton("Скачать обработанный файл") }
             }), cancellationToken: cancellationToken);
@@ -175,12 +250,12 @@ public class BotClient
     {
         await _bot.SendTextMessageAsync(currentUser.ChatId,
             "Отлично, тогда выберите поле, по которому собираетесь произвести выбору!\n" +
-            "Пожалуйста, воспользуйтесь кнопками или напишите текстом то, что написано на одной из них.",
+            "\u2757\ufe0f Пожалуйста, воспользуйтесь кнопками или напишите текстом то, что написано на одной из них.",
             replyMarkup: new ReplyKeyboardMarkup(new[]
             {
                 // кнопки с вариантами
                 new [] { new KeyboardButton("CoverageArea"), new KeyboardButton("WiFiName") },
-                new [] { new KeyboardButton("District"), new KeyboardButton("AccessFlag") }
+                new [] { new KeyboardButton("District и AccessFlag") }
             }), cancellationToken: cancellationToken);
     }
     
@@ -188,24 +263,13 @@ public class BotClient
     {
         await _bot.SendTextMessageAsync(currentUser.ChatId,
             "Выберите формат, в котором хотели бы получить файл с новыми данными. " +
-            "Обратите внимание, я работаю исключительно с двумя форматами. " +
+            "\u2757\ufe0f Обратите внимание, я работаю исключительно с двумя форматами. " +
             "Пожалуйста, воспользуйтесь кнопками или напишите текстом то, что написано на одной из них.",
             replyMarkup: new ReplyKeyboardMarkup(new[]
             {
                 // кнопки с вариантами
                 new [] { new KeyboardButton("CSV"), new KeyboardButton("JSON") }
             }), cancellationToken: cancellationToken);
-    }
-
-    private void ChangeState(User currentUser, UserEnum state)
-    {
-        for (int i = 0; i < _users.Count; i++)
-        {
-            if (_users[i].ChatId.Contains(currentUser.ChatId))
-            {
-                _users[i].UserState = state;
-            }
-        }
     }
     
     private async Task HandleGetFile(Message message, User currentUser, ITelegramBotClient botClient, CancellationToken cancellationToken)
@@ -274,7 +338,7 @@ public class BotClient
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Произошла ошибка при загрузке файла.");
+            Console.WriteLine("\u26d4\ufe0f Произошла ошибка при загрузке файла.");
         }
     }
     

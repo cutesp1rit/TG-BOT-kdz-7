@@ -29,6 +29,12 @@ public class User
         get;
         set;
     }
+    
+    public List<WifiCC> TmpList
+    {
+        get;
+        set;
+    }
 
     public User(string charId)
     {
@@ -41,13 +47,61 @@ public class User
         
     }
 
-    public void Sorting()
+    public void Sorting(string field)
     {
-        
+        if (field == "CulturalCenterName")
+        {
+            _listFromFile = _listFromFile.OrderBy(x => x.CulturalCenterName).ToList();
+        }
+        else // другое поле
+        {
+            _listFromFile = _listFromFile.OrderBy(x =>
+            {
+                // если там не число -- опускаем вниз
+                if (!int.TryParse(x.NumberOfAccessPoints, out var value))
+                    value = Int32.MaxValue - 1; 
+
+                return value;
+            }).ToList();
+
+        }
     }
 
-    public List<WifiCC> TakingOverField(string field, string value)
+    public List<WifiCC> TakingOverField(string field, string value, List<WifiCC> list = null)
     {
-        return _listFromFile.Where(x => x.GetRightProperty(field).Contains(value)).ToList();
+        if (list == null) // не передавали доп параметр 
+        {
+            // сначала берет для District
+            if (field == "District и AccessFlag" && UserState==UserEnum.WaitingForTwoValue)
+            {
+                return _listFromFile.Where(x => x.GetRightProperty("District").ToLower().Contains(value.ToLower())).ToList();
+            }
+            // во втором случае для AccessFlag
+            else if (field == "District и AccessFlag" && UserState == UserEnum.WaitingForValue)
+            {
+                return _listFromFile.Where(x => x.GetRightProperty("AccessFlag").ToLower().Contains(value.ToLower())).ToList();
+            }
+            else
+            {
+                return _listFromFile.Where(x => x.GetRightProperty(field).ToLower().Contains(value.ToLower())).ToList();    
+            }    
+        }
+        else
+        {
+            // сначала берет для District
+            if (field == "District и AccessFlag" && UserState==UserEnum.WaitingForTwoValue)
+            {
+                return list.Where(x => x.GetRightProperty("District").Contains(value)).ToList();
+            }
+            // во втором случае для AccessFlag
+            else if (field == "District и AccessFlag" && UserState == UserEnum.WaitingForValue)
+            {
+                return list.Where(x => x.GetRightProperty("AccessFlag").Contains(value)).ToList();
+            }
+            else
+            {
+                return list.Where(x => x.GetRightProperty(field).Contains(value)).ToList();    
+            }    
+        }
     }
 }
