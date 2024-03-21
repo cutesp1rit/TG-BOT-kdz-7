@@ -174,6 +174,11 @@ public class WifiCC
         Geoarea = geoarea;
     }
 
+    /// <summary>
+    /// Свойство для получения данных по конкретному полю
+    /// </summary>
+    /// <param name="field"></param>
+    /// <returns></returns>
     public string GetRightProperty(string field)
     {
         if (field == "CoverageArea")
@@ -201,6 +206,10 @@ public class WifiCC
         
     }
 
+    /// <summary>
+    /// Перевод в CSV строку
+    /// </summary>
+    /// <returns></returns>
     public string ToCSV()
     {
         return $"\"{Id}\";\"{CulturalCenterName}\";\"{AdmArea}\";\"{District}\";\"{Address}\";\"{NumberOfAccessPoints}\";" +

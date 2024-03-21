@@ -1,5 +1,8 @@
 namespace Bot_Library.Bots;
 
+/// <summary>
+/// Состояния пользователя
+/// </summary>
 public enum UserEnum
 {
     Starting,

@@ -13,7 +13,7 @@ public class JSONProcessing
     {
         StringBuilder jsonFileInString = new StringBuilder();
         string line;
-        using (StreamReader reader = new StreamReader(stream))
+        using (StreamReader reader = new StreamReader(stream)) // собираем все строки из потока в одну строку
         {
             line = reader.ReadLine();
             while (line != null)
@@ -26,6 +26,7 @@ public class JSONProcessing
             }
         }
         
+        // передаем все в готовый лист
         List<WifiCC> allInf = JsonSerializer.Deserialize<List<WifiCC>>(jsonFileInString.ToString());
         if (allInf == null || allInf.Count == 0) // если файл пуст
         {
@@ -47,9 +48,9 @@ public class JSONProcessing
         });
         
         MemoryStream stream = new MemoryStream();
-        StreamWriter writer = new StreamWriter(stream, Encoding.UTF8);
+        StreamWriter writer = new StreamWriter(stream, Encoding.UTF8); 
 
-        writer.WriteLine(jsonString);
+        writer.WriteLine(jsonString); // записываем всю строку в поток
 
         writer.Flush();
         stream.Position = 0;

@@ -3,11 +3,17 @@ namespace Bot_Library;
 
 public class CSVProcessing
 {
+    /// <summary>
+    /// Метод считывания csv файла
+    /// </summary>
+    /// <param name="stream"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentNullException"></exception>
     public static List<WifiCC> Read(Stream stream)
     {
         string line;
         List<string> arrayStrings = new List<string>();
-        using (StreamReader reader = new StreamReader(stream))
+        using (StreamReader reader = new StreamReader(stream)) // по потоку считываем все в одну строку
         {
             line = reader.ReadLine();
             while (line != null)
@@ -23,15 +29,21 @@ public class CSVProcessing
                 throw new ArgumentNullException();
             }
         }
-        CheakString(arrayStrings.ToArray());
-        return SortOfInformation(arrayStrings.ToArray());
+        CheakString(arrayStrings.ToArray()); // проверяем на корректность
+        return SortOfInformation(arrayStrings.ToArray()); // возвращаем готовый список
     }
     
+    /// <summary>
+    /// Метод записи csv файлов
+    /// </summary>
+    /// <param name="allInf"></param>
+    /// <returns></returns>
     public static MemoryStream Write(List<WifiCC> allInf)
     {
         MemoryStream stream = new MemoryStream();
         StreamWriter writer = new StreamWriter(stream, Encoding.UTF8);
 
+        // записываем первые две строки
         writer.WriteLine("\"ID\";\"CulturalCenterName\";\"AdmArea\";\"District\";\"Address\";\"NumberOfAccessPoints\";" +
                          "\"WiFiName\";\"CoverageArea\";\"FunctionFlag\";\"AccessFlag\";\"Password\";\"Latitude_WGS84\";" +
                          "\"Longitude_WGS84\";\"global_id\";\"geodata_center\";\"geoarea\";\n\"Код\";" +
@@ -39,6 +51,7 @@ public class CSVProcessing
                          "\"Количество точек доступа\";\"Имя Wi-Fi сети\";\"Зона покрытия, в метрах\";" +
                          "\"Признак функционирования\";\"Условия доступа\";\"Пароль\";\"Широта в WGS-84\";" +
                          "\"Долгота в WGS-84\";\"global_id\";\"geodata_center\";\"geoarea\";");
+        // записываем все объекты
         foreach (var obj in allInf)
         {
             writer.WriteLine(obj.ToCSV());
@@ -50,7 +63,9 @@ public class CSVProcessing
         return stream;
     }
     
+    
     /// все следующие методы по парсингу файла взяты из старого кдз
+    
     
     /// <summary>
     /// Алгоритм проверки файла на корректность данных
@@ -168,6 +183,11 @@ public class CSVProcessing
                 line[12], line[13], line[14], line[15]));
         }
 
+        if (allInf == null || allInf.Count == 0) // если файл пуст
+        {
+            throw new FormatException("Ошибка! Файл пуст!");
+        }
+        
         return allInf;
     }
     /// <summary>
