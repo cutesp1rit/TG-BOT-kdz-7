@@ -6,11 +6,13 @@ using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
+using Microsoft.Extensions.Logging;
 
 public class BotClient
 {
     private TelegramBotClient _bot; // поле для нашего бота
     private List<User> _users = new List<User>(); // список всех пользователей, для работы с их файлами
+    ILogger<BotClient> _logger;
 
     /// <summary>
     /// конструктор для инициализации бота
@@ -19,6 +21,14 @@ public class BotClient
     public BotClient(string token)
     {
         _bot = new TelegramBotClient(token);
+        
+        _logger = LoggerFactory.Create(builder =>
+        {
+            builder.AddConsole().AddFile(options =>
+            {
+                options.InternalLogFile = Path.Combine("bin", "logs", "bot.log"); // Путь к файлу логов
+            });
+        }).CreateLogger<BotClient>();
     }
     
     /// <summary>
@@ -51,11 +61,20 @@ public class BotClient
         
         var message = update.Message;
         var chatId = message.Chat.Id;
-
+        _logger.LogInformation($"Получено '{message.Text}' сообщение в чате {chatId}.");
+        _logger.LogInformation("Зарегистрировано {message.text}", DateTimeOffset.Now);
+        
+        if (message.Text == "")
+        {
+            _logger.LogInformation("Получено пустое сообщение.");
+            return;
+        }
+        
         // если наш пользователь еще не зарегистрирован - регистрируем
         if (!_users.ConvertAll(x => x.ChatId).Contains(chatId.ToString()))
         {
             _users.Add(new User(chatId.ToString()));
+            _logger.LogInformation($"Зарегистрирован новый пользователь с id {chatId}.");
         }
 
         // для работы с текущем пользователем, помещаем его в отдельную переменную
@@ -64,6 +83,7 @@ public class BotClient
         // стартовое сообщение
         if (message.Text == "/start" && currentUser.UserState==UserEnum.Starting)
         {
+            _logger.LogInformation("Получена команда /start.");
             await botClient.SendTextMessageAsync(message.Chat.Id,
                 "\ud83d\udc4b\ud83c\udffb Привет! Я рад видеть тебя здесь!\n\n" +
                 "\u2757\ufe0f Чтобы получить возможность пользоваться функциями для работы с файлом, пожалуйста," +
@@ -83,6 +103,7 @@ public class BotClient
             }
             else
             {
+                _logger.LogInformation("Получен файл с некорректным разрешением.");
                 await botClient.SendTextMessageAsync(message.Chat.Id,
                     "Вы отправили файл с некорретным разрешением.\n" +
                     "\u2757\ufe0f Пожалуйста, отправьте файл с разрешением CSV или JSON");
@@ -90,6 +111,7 @@ public class BotClient
         }
         else if (currentUser.UserState == UserEnum.Starting)
         {
+            _logger.LogInformation("Получено некорректное сообщение.");
             // если пользователь отправил некорректное сообщение --> переспрашиваем
             await botClient.SendTextMessageAsync(message.Chat.Id,
                 "\u2757\ufe0f Чтобы получить возможность пользоваться функциями для работы с файлом, пожалуйста," +
@@ -97,6 +119,7 @@ public class BotClient
         }
         else if (message.Text == "Загрузить новый файл на обработку" && currentUser.UserState==UserEnum.Choosing)
         {
+            _logger.LogInformation("Получена команда: Загрузить новый файл на обработку");
             // меняем на начальное состояние
             currentUser.UserState = UserEnum.Starting;
             await botClient.SendTextMessageAsync(message.Chat.Id,
@@ -104,6 +127,7 @@ public class BotClient
         }
         else if ((message.Text == "Произвести выборку по полям из файла" && currentUser.UserState==UserEnum.Choosing))
         {
+            _logger.LogInformation("Получена команда: Произвести выборку по полям из файла");
             // переводим в состояние данного выбора
             currentUser.UserState = UserEnum.TakingOverField;
             // запускаем кнопки
@@ -111,6 +135,7 @@ public class BotClient
         }
         else if ((message.Text == "Отсортировать по одному из полей" && currentUser.UserState==UserEnum.Choosing))
         {
+            _logger.LogInformation("Получена команда: Отсортировать по одному из полей");
             // запускаем кнопки
             await _bot.SendTextMessageAsync(currentUser.ChatId,
                 "По какому полю вы бы хотели отсортировать?",
@@ -129,13 +154,16 @@ public class BotClient
             if (message.Text == "CulturalCenterName по алфавиту")
             {
                 currentUser.Sorting("CulturalCenterName");
+                _logger.LogInformation("Произведена сортировка по полю CulturalCenterName");
             }
             else if (message.Text == "NumberOfAccessPoints по возрастанию")
             {
                 currentUser.Sorting("NumberOfAccessPoints");
+                _logger.LogInformation("Произведена сортировка по полю NumberOfAccessPoints");
             }
             else // еще раз просим ответить корректно
             {
+                _logger.LogInformation("Получено некорректное сообщение");
                 await _bot.SendTextMessageAsync(currentUser.ChatId,
                     "\u2757\ufe0f Пожалуйста, выберите из двух возможных вариантов.",
                     replyMarkup: new ReplyKeyboardMarkup(new[]
@@ -158,10 +186,12 @@ public class BotClient
             currentUser.UserState = UserEnum.WaitingFileName;
             // вызываем меню с кнопками
             await FileMenu(message, currentUser, _bot, cancellationToken);
+            _logger.LogInformation("Получен формат файла на выгрузку.");
         }
         else if (currentUser.UserState == UserEnum.Choosing)
         {
             // если сообщение некорректное -- отправляем меню еще раз
+            _logger.LogInformation("Получено некорректное сообщение.");
             await ChoosingMenu(message, currentUser, _bot, cancellationToken);
         }
         // работа с выборками
@@ -171,7 +201,7 @@ public class BotClient
         {
             // запомянаем наше введенное поле
             currentUser.TmpField = message.Text;
-
+            _logger.LogInformation("Получено поле для выборки.");
             if (message.Text == "CoverageArea" ||
                 message.Text == "WiFiName")
             { // если выборка не по двум поля 
@@ -193,6 +223,7 @@ public class BotClient
         {
             if (currentUser.TmpField == "District и AccessFlag" && currentUser.UserState == UserEnum.WaitingForTwoValue)
             {
+                _logger.LogInformation("Получено значение выборки.");
                 // заносим первый результат в временный лист
                 currentUser.TmpList = currentUser.TakingOverField(currentUser.TmpField, message.Text);
                 currentUser.UserState = UserEnum.WaitingForValue; 
@@ -200,19 +231,22 @@ public class BotClient
                     "Теперь введите значение для AccessFlag.");
                 return;
             }
-
+            
+            _logger.LogInformation("Получено значение выборки.");
             // когда по двум полям
             if (currentUser.TmpField == "District и AccessFlag")
             {
                 // если таких данных не нашлось, то список не перезаписываем
                 if (currentUser.TakingOverField(currentUser.TmpField, message.Text, currentUser.TmpList).Count == 0)
                 {
+                    _logger.LogInformation("Не найдено данных по данному значению выборки.");
                     await botClient.SendTextMessageAsync(message.Chat.Id,
                         "К сожалению, я ничего не нашел по этим данным. :( " +
                         "Поэтому мы оставили все те же данные для дальнейшей работы.");
                 }
                 else // перезаписываем список и уведомляем
                 {
+                    _logger.LogInformation("Произведена фильтрация по выборке.");
                     currentUser.ListFromFile =
                         currentUser.TakingOverField(currentUser.TmpField, message.Text, currentUser.TmpList);
                     await botClient.SendTextMessageAsync(message.Chat.Id,
@@ -224,12 +258,14 @@ public class BotClient
                 // если таких данных не нашлось, то список не перезапсываем
                 if (currentUser.TakingOverField(currentUser.TmpField, message.Text).Count == 0)
                 {
+                    _logger.LogInformation("Не найдено данных по данному значению выборки.");
                     await botClient.SendTextMessageAsync(message.Chat.Id,
                         "К сожалению, я ничего не нашел по этим данным. :( " +
                         "Поэтому мы оставили все те же данные для дальнейшей работы.");
                 }
                 else // перезаписываем список и уведомляем
                 {
+                    _logger.LogInformation("Произведена фильтрация по выборке.");
                     currentUser.ListFromFile = currentUser.TakingOverField(currentUser.TmpField, message.Text);
                     await botClient.SendTextMessageAsync(message.Chat.Id,
                         "\u2705 Данные были сокращены под вашу выборку! Можете продолжить с ними работу!");
@@ -243,12 +279,14 @@ public class BotClient
         // если сообщение некорректное для состояния выборки -- отправляем меню
         else if (currentUser.UserState == UserEnum.TakingOverField)
         {
+            _logger.LogInformation("Получено некорректное сообщение.");
             await TakingMenu(message, currentUser, _bot, cancellationToken);
         }
         else if (currentUser.UserState == UserEnum.WaitingFileName && (message.Text == "CSV" || 
                                                                        message.Text == "JSON"))
         { // состояние обработки выгрузки файла
             await GettingNewFile(message, currentUser, _bot, cancellationToken);
+            _logger.LogInformation("Выгружен файл пользователю.");
             // возвращаем его в меню
             currentUser.UserState = UserEnum.Choosing;
             await ChoosingMenu(message, currentUser, _bot, cancellationToken);
@@ -256,6 +294,7 @@ public class BotClient
         // если сообщение некорректно - снова выбрасываем меню
         else if (currentUser.UserState == UserEnum.WaitingFileName)
         {
+            _logger.LogInformation("Получено некорретное сообщение.");
             await FileMenu(message, currentUser, _bot, cancellationToken);
         }
     }
@@ -345,11 +384,15 @@ public class BotClient
                 stream.Position = 0;
                 if (f.Extension == ".csv")
                 {
+                    _logger.LogInformation("Получен CSV файл.");
                     allInf = CSVProcessing.Read(stream); // запускаем read для csv
+                    _logger.LogInformation("Обработан CSV файл.");
                 }
                 else // тогда json
                 {
+                    _logger.LogInformation("Получен JSON файл.");
                     allInf = JSONProcessing.Read(stream); // запускаем read для json
+                    _logger.LogInformation("Обработан JSON файл.");
                 }
             }
             currentUser.ListFromFile = allInf; // передаем полученные данные в лист, закрепленный за user
@@ -361,6 +404,7 @@ public class BotClient
         }
         catch (Exception ex) // при передаче файла с некорректными данными
         {
+            _logger.LogError(ex, "Ошибка при загрузке данных из файла.");
             await botClient.SendTextMessageAsync(message.Chat.Id,
                 "\U0001F480 я чуть не упал");
             // отправка стикера через его публичное id
@@ -371,7 +415,6 @@ public class BotClient
             await botClient.SendTextMessageAsync(message.Chat.Id,
                 "Вы отправили файл с некорректными данными...\n" +
                 "Пожалуйста, пришлите другой");
-            Console.WriteLine($"Ошибка при обработке файла: {ex.Message}");
         }
     }
     
@@ -409,7 +452,7 @@ public class BotClient
         }
         catch (Exception ex) // при возникновении ошибок
         {
-            Console.WriteLine("Произошла ошибка при загрузке файла.");
+            _logger.LogError(ex, "Ошибка при выгрузке данных.");
         }
     }
     
@@ -429,6 +472,7 @@ public class BotClient
             _ => exception.ToString()
         };
         Console.WriteLine(ErrorMessage);
+        _logger.LogError(exception, "Ошибка при работе бота в Telegram.");
         return Task.CompletedTask;
     }
 
