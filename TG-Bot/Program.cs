@@ -8,7 +8,7 @@ internal class Program
     {
         try
         {
-            var botClient = new BotClient("6839200648:AAEXaVIrzhpfvYKzXIDd8f2oPAkLQfdt_Bs");
+            var botClient = new BotClient("");
             await botClient.StartBot();
         }
         catch (Exception ex)
